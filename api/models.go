@@ -137,7 +137,3 @@ func (eir EnableImageResponse) getEnabledImageURL() (string, error) {
 	}
 	return "", fmt.Errorf("no enabledImageURL")
 }
-
-type ApiTokenContainer struct {
-	Token string `json:"SNlM0e"`
-}

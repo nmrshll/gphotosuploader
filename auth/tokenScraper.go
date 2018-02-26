@@ -1,4 +1,4 @@
-package api
+package auth
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/simonedegiacomi/gphotosuploader/auth"
 	"golang.org/x/net/html"
 )
 
@@ -17,12 +16,16 @@ const (
 
 // AtTokenScraper used to scape tokens to upload images
 type AtTokenScraper struct {
-	credentials auth.CookieCredentials
+	credentials CookieCredentials
+}
+
+type ApiTokenContainer struct {
+	Token string `json:"SNlM0e"`
 }
 
 // Create a new scraper for the at token. This token is user-dependent, so you need to create a new token scraper
 // for each Credentials object.
-func NewAtTokenScraper(credentials auth.CookieCredentials) *AtTokenScraper {
+func NewAtTokenScraper(credentials CookieCredentials) *AtTokenScraper {
 	return &AtTokenScraper{
 		credentials: credentials,
 	}
@@ -74,5 +77,6 @@ func (ts *AtTokenScraper) ScrapeNewAtToken() (string, error) {
 		return "", fmt.Errorf("can't parse the JSON object that contains the at token (%v)", err)
 	}
 
+	ts.credentials.RuntimeParameters.AtToken = object.Token
 	return object.Token, nil
 }

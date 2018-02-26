@@ -1,16 +1,15 @@
-package utils
+package auth
 
 import (
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/simonedegiacomi/gphotosuploader/auth"
 	"github.com/tebeka/selenium"
 )
 
 // Start a wizard that open a browser to let the user authenticate and return an auth.Credentials implementation
-func StartWebDriverCookieCredentialsWizard() (*auth.CookieCredentials, error) {
+func StartWebDriverCookieCredentialsWizard() (*CookieCredentials, error) {
 	fmt.Print("\n-- WebDriver CookieCredentials Wizard --\n")
 
 	// Get browser name and address
@@ -63,7 +62,7 @@ func StartWebDriverCookieCredentialsWizard() (*auth.CookieCredentials, error) {
 	cookies := SeleniumToGoCookies(seleniumCookies)
 
 	// Create auth container
-	credentials := auth.NewCookieCredentials(cookies, &auth.PersistentParameters{})
+	credentials := NewCookieCredentials(cookies, &PersistentParameters{})
 
 	// Get the user id
 	res, err := webDriver.ExecuteScript(`return { id: window.WIZ_global_data.S06Grb } `, nil)

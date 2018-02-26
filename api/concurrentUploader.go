@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/simonedegiacomi/gphotosuploader/api"
 	"github.com/simonedegiacomi/gphotosuploader/auth"
+	"github.com/simonedegiacomi/gphotosuploader/utils"
 )
 
 // Simple client used to implement the tool that can upload multiple photos or videos at once
@@ -95,7 +95,7 @@ func (u *ConcurrentUploader) EnqueueUpload(filePath string) error {
 	}
 
 	// Check if the file is an image or a video
-	if valid, err := IsImageOrVideo(filePath); err != nil {
+	if valid, err := utils.IsImageOrVideo(filePath); err != nil {
 		u.Errors <- err
 		return nil
 	} else if !valid {
@@ -126,7 +126,7 @@ func (u *ConcurrentUploader) uploadFile(filePath string) {
 	defer file.Close()
 
 	// Create options
-	options, err := api.NewUploadOptionsFromFile(file)
+	options, err := NewUploadOptionsFromFile(file)
 	if err != nil {
 		u.Errors <- err
 		return
@@ -134,7 +134,7 @@ func (u *ConcurrentUploader) uploadFile(filePath string) {
 	options.AlbumId = u.albumId
 
 	// Create a new upload
-	upload, err := api.NewUpload(options, u.credentials)
+	upload, err := NewUpload(options, u.credentials)
 	if err != nil {
 		u.Errors <- err
 		return

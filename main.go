@@ -3,12 +3,10 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -30,7 +28,7 @@ var (
 	eventDelay           time.Duration
 
 	// Uploader
-	uploader *utils.ConcurrentUploader
+	uploader *api.ConcurrentUploader
 	timers   = make(map[string]*time.Timer)
 
 	// Statistic
@@ -45,11 +43,11 @@ func main() {
 	initCliArguments()
 
 	// Initialize authentication
-	credentials := initAuthentication()
+	credentials := auth.Authenticate(auth.AuthenticationOptions{AuthFilePath: "auth.json"})
 
 	// Create the uploader
 	var err error
-	uploader, err = utils.NewUploader(credentials, albumId, maxConcurrentUploads)
+	uploader, err = api.NewUploader(credentials, albumId, maxConcurrentUploads)
 	if err != nil {
 		log.Fatalf("Can't create uploader: %v\n", err)
 	}
@@ -230,58 +228,4 @@ func notifyUploaderOfAlreadyUploadedFiles() {
 	for scanner.Scan() {
 		uploader.AddUploadedFiles(scanner.Text())
 	}
-}
-
-func initAuthentication() auth.CookieCredentials {
-	// Load authentication parameters
-	credentials, err := auth.NewCookieCredentialsFromFile(authFile)
-	if err != nil {
-		log.Printf("Can't use '%v' as auth file\n", authFile)
-		credentials = nil
-	} else {
-		log.Println("Auth file loaded, checking validity ...")
-		validity, err := credentials.TestCredentials()
-		if err != nil {
-			log.Fatalf("Can't check validity of credentials (%v)\n", err)
-			credentials = nil
-		} else if !validity.Valid {
-			log.Printf("Credentials are not valid! %v\n", validity.Reason)
-			credentials = nil
-		} else {
-			log.Println("Auth file seems to be valid")
-		}
-	}
-
-	if credentials == nil {
-		fmt.Println("The uploader can't continue without valid authentication tokens ...")
-		fmt.Println("Would you like to run the WebDriver CookieCredentials Wizard ? [Yes/No]")
-		fmt.Println("(If you don't know what it is, refer to the README)")
-
-		var answer string
-		fmt.Scanln(&answer)
-		startWizard := len(answer) > 0 && strings.ToLower(answer)[0] == 'y'
-
-		if !startWizard {
-			log.Fatalln("It's not possible to continue, sorry!")
-		} else {
-			credentials, err = utils.StartWebDriverCookieCredentialsWizard()
-			if err != nil {
-				log.Fatalf("Can't complete the login wizard, got: %v\n", err)
-			} else {
-				// TODO: Handle error
-				credentials.SerializeToFile(authFile)
-			}
-		}
-	}
-
-	// Get a new At token
-	log.Println("Getting a new At token ...")
-	token, err := api.NewAtTokenScraper(*credentials).ScrapeNewAtToken()
-	if err != nil {
-		log.Fatalf("Can't scrape a new At token (%v)\n", err)
-	}
-	credentials.RuntimeParameters.AtToken = token
-	log.Println("At token taken")
-
-	return *credentials
 }
