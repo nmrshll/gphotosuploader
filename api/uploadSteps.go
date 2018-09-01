@@ -235,7 +235,11 @@ func (u *Upload) enablePhoto(uploadResponse *UploadImageResponse) (*EnableImageR
 	if err := json.Unmarshal(bytesResponse[6:], &jsonRes); err != nil {
 		return nil, err
 	}
-	u.enabledImageId = jsonRes.getEnabledImageId()
+	enabledImageId, err := jsonRes.getEnabledImageId()
+	if err != nil {
+		return nil, err
+	}
+	u.enabledImageId = enabledImageId
 
 	// Image enabled
 	return jsonRes, nil

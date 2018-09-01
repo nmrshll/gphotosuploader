@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// Finally upload the image
-	uploadRes, err := upload.Upload()
+	err = upload.Upload()
 	if err != nil {
 		panic(err)
 	}

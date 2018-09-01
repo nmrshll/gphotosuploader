@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/palantir/stacktrace"
+
 	"github.com/simonedegiacomi/gphotosuploader/auth"
 )
 
@@ -65,6 +67,13 @@ type Upload struct {
 
 	// Id of the image got from the response of the request that enables the image
 	enabledImageId string
+
+	// ImageID is the id that the image can be accessed with in the future. The URL of the image can be derived from this ID
+	ImageID string
+}
+
+func (u *Upload) URLString() string {
+	return fmt.Sprintf("https://lh3.googleusercontent.com/%s", u.ImageID)
 }
 
 // NewUpload creates a new Upload given an UploadOptions and a Credentials implementation. This method return an error if the
@@ -99,40 +108,40 @@ func getImageIDFromURL(URL string) (string, error) {
 	return matches[1], nil
 }
 
-type UploadResult struct {
-	ImageID string
-}
+// type UploadResult struct {
+// 	ImageID string
+// }
 
-func (ur *UploadResult) URLString() string {
-	return fmt.Sprintf("https://lh3.googleusercontent.com/%s", ur.ImageID)
-}
+// func (ur *UploadResult) URLString() string {
+// 	return fmt.Sprintf("https://lh3.googleusercontent.com/%s", ur.ImageID)
+// }
 
 // Upload tries to upload an image, making multiple http requests
-func (u *Upload) Upload() (*UploadResult, error) {
+func (u *Upload) Upload() error {
 	// First request to get the upload url
 	err := u.requestUploadURL()
 	if err != nil {
-		return nil, errors.New("Can't request an upload url")
+		return errors.New("Can't request an upload url")
 	}
 
 	// Upload the real image file
 	uploadRes, err := u.uploadFile()
 	if err != nil {
-		return nil, errors.New("Can't upload file")
+		return errors.New("Can't upload file")
 	}
 
 	// Enable the photo
 	enableRes, err := u.enablePhoto(uploadRes)
 	if err != nil {
-		return nil, err
+		return stacktrace.Propagate(err, "can't enable photo")
 	}
 	uploadedImageURL, err := enableRes.getEnabledImageURL()
 	if err != nil {
-		return nil, err
+		return stacktrace.Propagate(err, "can't get enabledImageURL")
 	}
 	uploadedImageID, err := getImageIDFromURL(uploadedImageURL)
 	if err != nil {
-		return nil, err
+		return stacktrace.Propagate(err, "can't get enabledImageID from URL")
 	}
 
 	// Add the image to an album if needed
@@ -140,6 +149,8 @@ func (u *Upload) Upload() (*UploadResult, error) {
 		u.moveToAlbum(u.Options.AlbumId)
 	}
 
+	u.ImageID = uploadedImageID
+
 	// No errors, image uploaded!
-	return &UploadResult{ImageID: uploadedImageID}, nil
+	return nil
 }

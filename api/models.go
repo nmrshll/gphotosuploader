@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/palantir/stacktrace"
 )
 
 // Structure of the JSON object that it's sent to request a new url to upload a new photo
@@ -73,18 +75,6 @@ type UploadImageResponse struct {
 	SessionStatus SessionStatus `json:"sessionStatus"`
 }
 
-// // Struct used in SessionStatus in the response of the upload of a new image
-// type AdditionalInfo
-
-// // Used in AdditionalInfo for image upload response
-// type GoogleRupioAdditionalInfo
-
-// // Used in GoogleRupioAdditionalInfo for image upload response
-// type CompletionInfo
-
-// // Used in CompletitionInfo and contains a token field used to enable the image in the future
-// type CustomerSpecificInfo
-
 type EnableImageRequest []interface{}
 
 type FirstItemEnableImageRequest []InnerItemFirstItemEnableImageRequest
@@ -103,18 +93,8 @@ type InnerItemToEnableArray interface{}
 
 type EnableImageResponse []interface{}
 
-func (r EnableImageResponse) getEnabledImageId() string {
-	innerArray := r[0].([]interface{})
-	innerObject := innerArray[1].(map[string]interface{})
-	secondInnerArray := innerObject[fmt.Sprintf("%v", EnablePhotoKey)].([]interface{})
-	thirdInnerArray := secondInnerArray[0].([]interface{})
-	fourthInnerArray := thirdInnerArray[0].([]interface{})
-	fifthInnerObject := fourthInnerArray[1].([]interface{})
-	return fifthInnerObject[0].(string)
-}
-
-func (eir EnableImageResponse) getEnabledImageURL() (string, error) {
-	var inner3Array, inner6Array []interface{}
+func (eir EnableImageResponse) getInner6Array() ([]interface{}, error) {
+	var inner3Array []interface{}
 	if len(eir) > 0 {
 		if inner1Array, ok := eir[0].([]interface{}); ok && len(inner1Array) >= 2 {
 			if inner2Map, ok := inner1Array[1].(map[string]interface{}); ok {
@@ -125,9 +105,31 @@ func (eir EnableImageResponse) getEnabledImageURL() (string, error) {
 	if len(inner3Array) > 0 {
 		if inner4Array, ok := inner3Array[0].([]interface{}); ok && len(inner4Array) > 0 {
 			if inner5Array, ok := inner4Array[0].([]interface{}); ok && len(inner5Array) >= 2 {
-				inner6Array = inner5Array[1].([]interface{})
+				return inner5Array[1].([]interface{}), nil
 			}
 		}
+	}
+	return nil, fmt.Errorf("no inner6Array")
+}
+
+func (eir EnableImageResponse) getEnabledImageId() (string, error) {
+	inner6Array, err := eir.getInner6Array()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "no enabledImageID")
+	}
+	if len(inner6Array) >= 1 {
+		if enabledImageId, ok := inner6Array[0].(string); ok {
+			return enabledImageId, nil
+		}
+	}
+
+	return "", fmt.Errorf("no enabledImageID")
+}
+
+func (eir EnableImageResponse) getEnabledImageURL() (string, error) {
+	inner6Array, err := eir.getInner6Array()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "no enabledImageURL")
 	}
 	if len(inner6Array) >= 2 {
 		inner7Array := inner6Array[1].([]interface{})
